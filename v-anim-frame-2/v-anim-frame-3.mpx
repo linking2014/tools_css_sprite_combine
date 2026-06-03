@@ -1,0 +1,238 @@
+<template>
+  <wxs
+    src="./vmin.wxs"
+    module="vmin"/>
+
+  <view
+    class="
+      frame_wrap
+      {{status === 'end' ? 'frame_end' : (status === 'ending' ? 'frame_ending' : '')}}
+      {{loopNumber === 0 || restartHack ? 'frame_stop' : ''}}
+      {{reverse ? 'anim-reverse' : 'anim-normal'}}
+    "
+    bind:animationend="onAnimEnd"
+    bind:animationiteration="onAnimIteration"
+    style="
+      background-image: {{url ? 'url(' + url + ')' : 'none'}};
+      pointer-events: {{pointerEvents}};
+      --animPause: {{pause ? 'paused' : 'running'}};
+      --width: {{widthValue}};
+      --height: {{heightValue}};
+      --count: {{countNumber}};
+      --duration: {{durationNumber}};
+      --loop: {{loop}};
+      --steps: {{stepsNumber}};
+    "></view>
+</template>
+
+<script>
+import {createComponent} from '@mpxjs/core'
+
+createComponent({
+  options: {
+    styleIsolation: 'isolated',
+  },
+
+  properties: {
+    reverse: {
+      type: Boolean,
+      value: false,
+    },
+    unit: {
+      type: String, // 小程序默认保留 rpx
+      value: 'rpx',
+    },
+    pause: {
+      type: Boolean,
+      value: false,
+    },
+    url: {
+      type: String,
+      value: '',
+    },
+    count: {
+      type: null,
+      value: 0,
+    },
+    width: {
+      type: null,
+      value: 0,
+    },
+    height: {
+      type: null,
+      value: 0,
+    },
+    duration: {
+      type: null,
+      value: 0,
+    },
+    loop: { // infinite | 数字
+      type: null,
+      value: 'infinite',
+    },
+    pointerEvents: {
+      type: String,
+      value: 'auto',
+    },
+  },
+
+  data: {
+    status: '',
+    iterationCount: 0,
+    loopNumber: -1,
+    countNumber: 0,
+    durationNumber: 0,
+    stepsNumber: 1,
+    widthValue: '0rpx',
+    heightValue: '0rpx',
+    restartHack: false,
+  },
+
+  lifetimes: {
+    attached() {
+      this.syncDerivedData()
+      this.handleLoopChange(this.data.loop)
+    },
+  },
+
+  observers: {
+    loop(val) {
+      this.handleLoopChange(val)
+      this.syncDerivedData()
+      this.tryRestartAnimation()
+    },
+    'duration,count,reverse,url,width,height,unit'(duration, count, reverse, url, width, height, unit) { // eslint-disable-line no-unused-vars
+      this.syncDerivedData()
+      this.tryRestartAnimation()
+    },
+  },
+
+  methods: {
+    toNumber(val, defaultValue = 0) {
+      const n = Number(val)
+      return Number.isFinite(n) ? n : defaultValue
+    },
+
+    unitValue(num) {
+      if (this.data.unit === 'rpx') return `${num}rpx`
+      if (this.data.unit === 'px') return `${num}px`
+      return vmin(num)
+    },
+
+    syncDerivedData() {
+      const countNumber = Math.max(0, this.toNumber(this.data.count, 0))
+      const durationNumber = Math.max(0, this.toNumber(this.data.duration, 0))
+      const widthNumber = Math.max(0, this.toNumber(this.data.width, 0))
+      const heightNumber = Math.max(0, this.toNumber(this.data.height, 0))
+      const loopRaw = String(this.data.loop)
+      const loopNumber = loopRaw === 'infinite' ? -1 : Math.max(0, this.toNumber(loopRaw, 0))
+
+      this.setData({
+        countNumber,
+        durationNumber,
+        stepsNumber: Math.max(1, countNumber - 1),
+        widthValue: this.unitValue(widthNumber),
+        heightValue: this.unitValue(heightNumber),
+        loopNumber,
+      })
+    },
+
+    handleLoopChange(val) {
+      if (String(val) === 'infinite') {
+        this.setData({
+          status: '',
+          iterationCount: 0,
+        })
+      } else {
+        this.setData({
+          status: 'ending',
+        })
+      }
+    },
+
+    tryRestartAnimation() {
+      if (this.data.pause || this.data.loopNumber === 0) return
+      this.setData({ status: '', iterationCount: 0, restartHack: true })
+      setTimeout(() => {
+        this.setData({ restartHack: false })
+      }, 16)
+    },
+
+    onAnimEnd() {
+      this.setData({
+        status: 'end',
+        iterationCount: 0,
+      })
+      this.triggerEvent('animend', { data: 0 })
+    },
+
+    onAnimIteration() {
+      const next = this.data.iterationCount + 1
+      this.setData({ iterationCount: next })
+      this.triggerEvent('animiteration', { data: next })
+    },
+  },
+})
+</script>
+
+<script name="json">
+module.exports = {
+  component: true,
+  usingComponents: {},
+}
+</script>
+
+<style lang="scss">
+@keyframes animFrame {
+  from {
+    background-position-x: 0;
+  }
+
+  to {
+    background-position-x: calc(var(--width) * (var(--count) - 1) * -1);
+  }
+}
+
+@keyframes animFrameReverse {
+  from {
+    background-position-x: calc(var(--width) * (var(--count) - 1) * -1);
+  }
+
+  to {
+    background-position-x: 0;
+  }
+}
+
+.frame_wrap {
+  width: var(--width);
+  height: var(--height);
+  background-position: 0 0;
+  background-size: calc(var(--width) * var(--count)) var(--height);
+  animation-duration: calc(var(--duration) * 1s);
+  animation-timing-function: steps(var(--steps), start);
+  animation-iteration-count: var(--loop);
+  animation-play-state: var(--animPause) !important;
+  animation-fill-mode: forwards !important;
+  transition: opacity 300ms;
+
+  &.anim-normal {
+    animation-name: animFrame;
+  }
+
+  &.anim-reverse {
+    animation-name: animFrameReverse;
+  }
+
+  &.frame_end {
+    animation-play-state: paused !important;
+  }
+
+  &.frame_stop {
+    animation: none !important;
+  }
+
+  &.frame_ending {
+    pointer-events: none !important;
+  }
+}
+</style>

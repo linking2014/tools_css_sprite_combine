@@ -1,0 +1,85 @@
+<template>
+  <wxs
+    src="./vmin.wxs"
+    module="vmin"/>
+
+  <view
+    class="
+      frame_wrap
+      {{status === 'end' ? 'frame_end' : (status === 'ending' ? 'frame_ending' : '')}}
+      {{infinite == 0 ? 'frame_stop' : ''}}
+    "
+    bind:animationend="animEnd"
+    bind:animationiteration="animIteration"
+    style="
+      background-image: url({{url}});
+      pointer-events: {{pointerEvents}};
+      --animPause: {{pause ? 'paused' : 'running'}};
+      --animName: {{reverse ? 'animFrameReverse' : 'animFrame'}};
+      --width:{{unit === 'rpx' ? width + 'rpx' : vmin(width)}};
+      --height:{{unit === 'rpx' ? height + 'rpx' : vmin(height)}};
+      --count:{{count}};
+      --duration:{{duration}};
+      --loop:{{loop}}
+    "></view>
+
+</template>
+
+<script src="./v-anim-frame-2.js"></script>
+
+<script name="json">
+module.exports = {
+  'component': true,
+  'usingComponents': {}
+}
+</script>
+
+<style lang="scss">
+
+@keyframes animFrame {
+  from {
+    background-position-x: 0;
+  }
+
+  to {
+    background-position-x: calc(var(--width) * (var(--count) - 1) * -1);
+  }
+}
+
+@keyframes animFrameReverse {
+  from {
+    background-position-x: calc(var(--width) * (var(--count) - 1) * -1);
+  }
+
+  to {
+    background-position-x: 0;
+  }
+}
+
+.frame_wrap {
+  width: var(--width);
+  height: var(--height);
+  background-position: 0 0;
+  background-size: calc(var(--width) * var(--count)) var(--height);
+  animation: var(--animName) calc(var(--duration) * 1s) steps(calc(var(--count) - 1), start) var(--loop);
+
+  animation-play-state: var(--animPause) !important;
+  animation-fill-mode: forwards !important;
+  transition: opacity 300ms;
+
+  &.frame_end {
+    //animation: none;
+    animation-play-state: paused !important;
+  }
+
+  &.frame_stop {
+    animation: none;
+  }
+
+  &.frame_ending {
+    pointer-events: none !important;
+    // opacity: 0.75;
+  }
+}
+
+</style>

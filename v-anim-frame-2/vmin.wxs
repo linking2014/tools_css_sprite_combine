@@ -1,0 +1,29 @@
+function px2units(opts, value) {
+  var _opts = opts || {}
+
+  function repalcePx(str) {
+    if (!str) {
+      return ''
+    }
+    var size = (value * _opts.multiple) / _opts.divisor
+    return size % 1 === 0
+      ? size + _opts.targetUnits
+      : size.toFixed(_opts.decimalPlaces) + _opts.targetUnits
+  }
+
+  return repalcePx(value)
+}
+
+function px2vmin(value) {
+  return px2units(
+    {
+      divisor: 7.5,
+      multiple: 2,
+      decimalPlaces: 10,
+      targetUnits: 'vmin',
+    },
+    value
+  )
+}
+
+module.exports = px2vmin
