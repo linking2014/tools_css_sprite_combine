@@ -15,7 +15,8 @@
 
 ```
 tools_css_sprite_combine/
-├── css_sprite_combine.html   # 主工具（单文件，零构建）
+├── index.html                # 主工具（单文件，零构建，GitHub Pages 默认入口）
+├── css_sprite_combine.html   # 兼容旧链接，自动跳转到首页
 └── v-anim-frame-2/
     ├── v-anim-frame.vue      # Vue 3 帧动画组件
     ├── v-anim-frame-3.mpx    # MPX 小程序组件（推荐）
@@ -38,7 +39,7 @@ npx serve .
 python3 -m http.server 8080
 ```
 
-浏览器访问 `http://localhost:8080/css_sprite_combine.html`（端口以实际为准）。
+浏览器访问 `http://localhost:8080/`（或 `http://localhost:8080/index.html`，端口以实际为准）。
 
 ### 2. 制作精灵图
 
